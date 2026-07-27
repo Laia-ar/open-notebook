@@ -1,0 +1,57 @@
+# Fork instance — runs alongside an upstream Open Notebook deployment on the
+# same host. It is a self-contained compose project (own name, own volumes,
+# own ports), built from this repo's source instead of the published image.
+#
+# Deploys are driven by scripts/deploy-fork.sh (git pull + rebuild).
+#
+# Ports can be overridden in a local .env next to this file:
+#   FORK_WEB_PORT=8503   FORK_API_PORT=5056   FORK_DB_PORT=8001
+name: open-notebook-fork
+
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:v2
+    command: ["start", "--log", "info", "--user", "${SURREAL_USER:-root}", "--pass", "${SURREAL_PASSWORD:-root}", "rocksdb:/mydata/mydatabase.db"]
+    user: root  # Required for bind mounts on Linux
+    ports:
+      # Localhost only, and shifted off the upstream instance's 8000. Purely
+      # for local debugging; the app reaches it over the internal network.
+      - "127.0.0.1:${FORK_DB_PORT:-8001}:8000"
+    volumes:
+      - surreal_data:/mydata
+    environment:
+      - SURREAL_EXPERIMENTAL_GRAPHQL=true
+    restart: always
+
+  open_notebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${FORK_WEB_PORT:-8503}:8502"  # Web UI
+      - "${FORK_API_PORT:-5056}:5055"  # REST API (optional externally; the UI proxies to it internally)
+    environment:
+      # REQUIRED: set in .env — encrypts API keys stored in the database.
+      # Use a different value than the upstream instance.
+      - OPEN_NOTEBOOK_ENCRYPTION_KEY=${OPEN_NOTEBOOK_ENCRYPTION_KEY:?Set OPEN_NOTEBOOK_ENCRYPTION_KEY in .env}
+
+      # Database connection (internal network; port remapping above does not
+      # affect this URL).
+      - SURREAL_URL=ws://surrealdb:8000/rpc
+      - SURREAL_USER=${SURREAL_USER:-root}
+      - SURREAL_PASSWORD=${SURREAL_PASSWORD:-root}
+      - SURREAL_NAMESPACE=open_notebook
+      - SURREAL_DATABASE=open_notebook
+
+      # OPTIONAL: password-protect this instance (recommended when reachable
+      # beyond localhost).
+      # - OPEN_NOTEBOOK_PASSWORD=${OPEN_NOTEBOOK_PASSWORD:-}
+    volumes:
+      - notebook_data:/app/data
+    depends_on:
+      - surrealdb
+    restart: always
+
+volumes:
+  surreal_data:
+  notebook_data:

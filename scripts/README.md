@@ -1,5 +1,12 @@
 # Scripts Documentation
 
+## deploy-fork.sh
+
+Auto-deploys the fork instance defined in `docker-compose.fork.yml`: if
+`origin/$DEPLOY_BRANCH` (default `main`) has new commits, it fast-forwards the
+checkout, rebuilds the image and restarts the stack. Intended to run from cron
+on the server hosting the fork instance; see the header comment in the script.
+
 ## export_docs.py
 
 Consolidates markdown documentation files for use with ChatGPT or other platforms with file upload limits.
