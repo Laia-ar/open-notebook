@@ -46,6 +46,12 @@ services:
       # Password-protect this instance (auth is fully disabled when unset).
       # Strongly recommended: this instance is reachable on a public IP.
       - OPEN_NOTEBOOK_PASSWORD=${OPEN_NOTEBOOK_PASSWORD:-}
+
+      # REQUIRED: public URL of THIS instance's API. The frontend's
+      # auto-detection (frontend/src/app/config/route.ts) hardcodes port
+      # 5055, which on this shared host is the upstream instance — without
+      # this override the fork UI silently talks to the upstream API.
+      - API_URL=${API_URL:?Set API_URL in .env, e.g. http://<server-ip>:5056}
     volumes:
       - notebook_data:/app/data
     depends_on:
