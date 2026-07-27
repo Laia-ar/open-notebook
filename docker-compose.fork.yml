@@ -43,9 +43,9 @@ services:
       - SURREAL_NAMESPACE=open_notebook
       - SURREAL_DATABASE=open_notebook
 
-      # OPTIONAL: password-protect this instance (recommended when reachable
-      # beyond localhost).
-      # - OPEN_NOTEBOOK_PASSWORD=${OPEN_NOTEBOOK_PASSWORD:-}
+      # Password-protect this instance (auth is fully disabled when unset).
+      # Strongly recommended: this instance is reachable on a public IP.
+      - OPEN_NOTEBOOK_PASSWORD=${OPEN_NOTEBOOK_PASSWORD:-}
     volumes:
       - notebook_data:/app/data
     depends_on:
