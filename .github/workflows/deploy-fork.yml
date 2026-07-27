@@ -1,0 +1,33 @@
+name: Deploy Fork
+
+# Deploys the fork instance to the server on every push to main.
+# The workflow only triggers the deploy: the server pulls origin/main and
+# rebuilds itself via scripts/deploy-fork.sh (see that script for details).
+#
+# Required repository secrets:
+#   DEPLOY_HOST     - server hostname or IP
+#   DEPLOY_USER     - SSH user with permission to run docker (e.g. root)
+#   DEPLOY_SSH_KEY  - private key whose public half is in the user's
+#                     authorized_keys on the server
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Serialize deploys; a second push while one is running waits its turn
+# instead of racing (the server-side flock in deploy-fork.sh is the backstop).
+concurrency:
+  group: deploy-fork
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy on the server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: /opt/open-notebook-fork/scripts/deploy-fork.sh
