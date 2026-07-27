@@ -13,6 +13,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+        type: string
 
 # Serialize deploys; a second push while one is running waits its turn
 # instead of racing (the server-side flock in deploy-fork.sh is the backstop).
@@ -30,4 +36,10 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: /opt/open-notebook-fork/scripts/deploy-fork.sh
+          # Manual runs force a redeploy (even without new commits) and can
+          # target any branch; push runs always deploy main and rely on the
+          # script's no-change shortcut.
+          script: |
+            export DEPLOY_BRANCH="${{ github.event.inputs.branch || 'main' }}"
+            export FORCE="${{ github.event_name == 'workflow_dispatch' && '1' || '' }}"
+            /opt/open-notebook-fork/scripts/deploy-fork.sh
