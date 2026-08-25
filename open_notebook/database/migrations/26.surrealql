@@ -1,0 +1,9 @@
+-- Migration 26: Associate notebooks with application users
+
+DEFINE FIELD IF NOT EXISTS owner_id
+    ON TABLE notebook
+    TYPE option<record<app_user>>;
+
+DEFINE INDEX IF NOT EXISTS idx_notebook_owner_id
+    ON TABLE notebook
+    COLUMNS owner_id;

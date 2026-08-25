@@ -1,0 +1,5 @@
+-- Migration 26 rollback: remove notebook ownership
+
+REMOVE INDEX IF EXISTS idx_notebook_owner_id ON TABLE notebook;
+
+REMOVE FIELD IF EXISTS owner_id ON TABLE notebook;
