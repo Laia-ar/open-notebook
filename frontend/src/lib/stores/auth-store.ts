@@ -13,10 +13,11 @@ interface AuthState {
   isCheckingAuth: boolean
   hasHydrated: boolean
   authRequired: boolean | null
+  googleAuthEnabled: boolean
   setHasHydrated: (state: boolean) => void
   checkAuthRequired: () => Promise<boolean>
   login: (password: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   checkAuth: () => Promise<boolean>
 }
 
@@ -31,6 +32,7 @@ export const useAuthStore = create<AuthState>()(
       isCheckingAuth: false,
       hasHydrated: false,
       authRequired: null,
+      googleAuthEnabled: false,
 
       setHasHydrated: (state: boolean) => {
         set({ hasHydrated: state })
@@ -38,12 +40,18 @@ export const useAuthStore = create<AuthState>()(
 
       checkAuthRequired: async () => {
         try {
-          const response = await apiClient.get<{ auth_enabled?: boolean }>('/auth/status', {
+          const response = await apiClient.get<{
+            auth_enabled?: boolean
+            google_auth_enabled?: boolean
+          }>('/auth/status', {
             headers: { 'Cache-Control': 'no-store' },
           })
 
           const required = response.data.auth_enabled || false
-          set({ authRequired: required })
+          set({
+            authRequired: required,
+            googleAuthEnabled: response.data.google_auth_enabled || false,
+          })
 
           // If auth is not required, mark as authenticated
           if (!required) {
@@ -85,11 +93,11 @@ export const useAuthStore = create<AuthState>()(
               'Content-Type': 'application/json'
             }
           })
-          
+
           if (response.ok) {
-            set({ 
-              isAuthenticated: true, 
-              token: password, 
+            set({
+              isAuthenticated: true,
+              token: password,
               isLoading: false,
               lastAuthCheck: Date.now(),
               error: null
@@ -106,8 +114,8 @@ export const useAuthStore = create<AuthState>()(
             } else {
               errorMessage = `Authentication failed (${response.status})`
             }
-            
-            set({ 
+
+            set({
               error: errorMessage,
               isLoading: false,
               isAuthenticated: false,
@@ -118,7 +126,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Network error during auth:', error)
           let errorMessage = 'Authentication failed'
-          
+
           if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
             errorMessage = 'Unable to connect to server. Please check if the API is running.'
           } else if (error instanceof Error) {
@@ -126,8 +134,8 @@ export const useAuthStore = create<AuthState>()(
           } else {
             errorMessage = 'An unexpected error occurred during authentication'
           }
-          
-          set({ 
+
+          set({
             error: errorMessage,
             isLoading: false,
             isAuthenticated: false,
@@ -136,15 +144,22 @@ export const useAuthStore = create<AuthState>()(
           return false
         }
       },
-      
-      logout: () => {
-        set({ 
-          isAuthenticated: false, 
-          token: null, 
-          error: null 
-        })
+
+      logout: async () => {
+        try {
+          await apiClient.post('/auth/logout')
+        } catch (error) {
+          console.error('Failed to logout:', error)
+        } finally {
+          set({
+            isAuthenticated: false,
+            token: null,
+            error: null,
+            lastAuthCheck: null,
+          })
+        }
       },
-      
+
       checkAuth: async () => {
         const state = get()
         const { token, lastAuthCheck, isCheckingAuth, isAuthenticated } = state
@@ -152,11 +167,6 @@ export const useAuthStore = create<AuthState>()(
         // If already checking, return current auth state
         if (isCheckingAuth) {
           return isAuthenticated
-        }
-
-        // If no token, not authenticated
-        if (!token) {
-          return false
         }
 
         // If we checked recently (within 30 seconds) and are authenticated, skip
@@ -172,19 +182,25 @@ export const useAuthStore = create<AuthState>()(
 
           // Deliberately raw fetch (not apiClient): a 401 here must update
           // store state, not trigger the interceptor's storage-clear/redirect.
-          const response = await fetch(`${apiUrl}/api/notebooks`, {
+          const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+          }
+
+          if (token && token !== 'not-required') {
+            headers.Authorization = `Bearer ${token}`
+          }
+
+          const response = await fetch(`${apiUrl}/api/auth/me`, {
             method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+            headers,
+            credentials: 'include',
           })
-          
+
           if (response.ok) {
-            set({ 
-              isAuthenticated: true, 
+            set({
+              isAuthenticated: true,
               lastAuthCheck: now,
-              isCheckingAuth: false 
+              isCheckingAuth: false
             })
             return true
           } else {
@@ -198,11 +214,11 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('checkAuth error:', error)
-          set({ 
-            isAuthenticated: false, 
+          set({
+            isAuthenticated: false,
             token: null,
             lastAuthCheck: null,
-            isCheckingAuth: false 
+            isCheckingAuth: false
           })
           return false
         }

@@ -1,0 +1,40 @@
+-- Migration 25: Add user sessions
+
+DEFINE TABLE IF NOT EXISTS user_session SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS user_id
+    ON TABLE user_session
+    TYPE record<app_user>;
+
+DEFINE FIELD IF NOT EXISTS token_hash
+    ON TABLE user_session
+    TYPE string;
+
+DEFINE FIELD IF NOT EXISTS expires_at
+    ON TABLE user_session
+    TYPE datetime;
+
+DEFINE FIELD IF NOT EXISTS revoked_at
+    ON TABLE user_session
+    TYPE option<datetime>;
+
+DEFINE FIELD IF NOT EXISTS created
+    ON TABLE user_session
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE FIELD IF NOT EXISTS updated
+    ON TABLE user_session
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_user_session_token_hash
+    ON TABLE user_session
+    COLUMNS token_hash
+    UNIQUE
+    CONCURRENTLY;
+
+DEFINE INDEX IF NOT EXISTS idx_user_session_user_id
+    ON TABLE user_session
+    COLUMNS user_id
+    CONCURRENTLY;

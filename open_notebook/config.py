@@ -24,3 +24,23 @@ os.makedirs(PODCASTS_FOLDER, exist_ok=True)
 # pre-baked encoding baked into the image at build time).
 TIKTOKEN_CACHE_DIR = os.environ.get("TIKTOKEN_CACHE_DIR", "").strip() or f"{DATA_FOLDER}/tiktoken-cache"
 os.makedirs(TIKTOKEN_CACHE_DIR, exist_ok=True)
+
+# Google OAuth
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_REDIRECT_URI = os.environ.get(
+    "GOOGLE_REDIRECT_URI",
+    "http://localhost:5055/api/auth/google/callback",
+).strip()
+
+OPEN_NOTEBOOK_FRONTEND_URL = os.environ.get(
+    "OPEN_NOTEBOOK_FRONTEND_URL",
+    "http://localhost:3000",
+).strip()
+
+OPEN_NOTEBOOK_SESSION_DAYS = int(
+    os.environ.get("OPEN_NOTEBOOK_SESSION_DAYS", "30")
+)
+
+OPEN_NOTEBOOK_COOKIE_SECURE = (
+    os.environ.get("OPEN_NOTEBOOK_COOKIE_SECURE", "false").lower() == "true"
+)

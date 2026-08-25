@@ -1,0 +1,3 @@
+-- Migration 25 rollback: remove user sessions
+
+REMOVE TABLE IF EXISTS user_session;

@@ -1,0 +1,21 @@
+DEFINE TABLE IF NOT EXISTS app_user SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS name ON TABLE app_user TYPE string;
+DEFINE FIELD IF NOT EXISTS email ON TABLE app_user TYPE string;
+DEFINE FIELD IF NOT EXISTS avatar_url ON TABLE app_user TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS is_active ON TABLE app_user TYPE bool DEFAULT true;
+DEFINE FIELD IF NOT EXISTS last_login ON TABLE app_user TYPE option<string>;
+
+DEFINE FIELD IF NOT EXISTS created ON TABLE app_user
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE FIELD IF NOT EXISTS updated ON TABLE app_user
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_app_user_email
+    ON TABLE app_user
+    COLUMNS email
+    UNIQUE
+    CONCURRENTLY;
