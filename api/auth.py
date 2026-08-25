@@ -28,6 +28,11 @@ class PasswordAuthMiddleware(BaseHTTPMiddleware):
             "/docs",
             "/openapi.json",
             "/redoc",
+            "/api/auth/status",
+            "/api/auth/google/login",
+            "/api/auth/google/callback",
+            "api/auth/me",
+            "api/auth/logout",
         ]
 
     async def dispatch(
