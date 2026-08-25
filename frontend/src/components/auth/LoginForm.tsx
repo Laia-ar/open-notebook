@@ -16,10 +16,25 @@ export function LoginForm() {
   const { t, language } = useTranslation()
   const [password, setPassword] = useState('')
   const { login, isLoading, error } = useAuth()
-  const { authRequired, checkAuthRequired, hasHydrated, isAuthenticated } = useAuthStore()
+  const {
+    authRequired,
+    googleAuthEnabled,
+    checkAuthRequired,
+    hasHydrated,
+    isAuthenticated,
+  } = useAuthStore()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [configInfo, setConfigInfo] = useState<{ apiUrl: string; version: string; buildTime: string } | null>(null)
   const router = useRouter()
+  const handleGoogleLogin = async () => {
+    try {
+      const apiUrl = await getConfig().then((config) => config.apiUrl)
+
+      window.location.href = `${apiUrl}/api/auth/google/login`
+    } catch (error) {
+      console.error('Failed to start Google login:', error)
+    }
+  }
 
   // Load config info for debugging
   useEffect(() => {
@@ -147,6 +162,24 @@ export function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {googleAuthEnabled && (
+            <div className="space-y-3">
+              <Button
+                type="button"
+                className="w-full"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+              >
+                Continuar con Google
+              </Button>
+
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="h-px flex-1 bg-border" />
+                <span>o</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Input

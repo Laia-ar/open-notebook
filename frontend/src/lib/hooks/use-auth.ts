@@ -53,8 +53,8 @@ export function useAuth() {
     return success
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     router.push('/login')
   }
 
