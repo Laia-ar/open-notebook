@@ -17,8 +17,17 @@ class Notebook(ObjectModel):
     table_name: ClassVar[str] = "notebook"
     name: str
     description: str
+    owner_id: Optional[str] = None
     archived: Optional[bool] = False
     last_viewed_at: Optional[datetime] = None
+    
+    def _prepare_save_data(self) -> dict:
+        data = super()._prepare_save_data()
+
+        if data.get("owner_id") is not None:
+            data["owner_id"] = ensure_record_id(data["owner_id"])
+
+        return data
 
     @field_validator("name")
     @classmethod

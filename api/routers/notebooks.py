@@ -1,8 +1,9 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 
+from api.dependencies import get_current_user
 from api.models import (
     NotebookCreate,
     NotebookDeletePreview,
@@ -11,6 +12,8 @@ from api.models import (
     NotebookUpdate,
     RecentlyViewedResponse,
 )
+from open_notebook.domain.user import User
+
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import Notebook, Source
 from open_notebook.exceptions import (
@@ -20,6 +23,33 @@ from open_notebook.exceptions import (
 )
 
 router = APIRouter()
+
+async def _get_owned_notebook(
+    notebook_id: str,
+    current_user: User,
+) -> Notebook:
+    """
+    It retrieves a notebook only if it belongs to the current user
+    It also returns 404 when the notebook exists but belongs to another account, thus avoiding the disclosure of private information
+    """
+    try:
+        notebook = await Notebook.get(notebook_id)
+    except NotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Notebook not found",
+        )
+
+    if (
+        not notebook.owner_id
+        or str(notebook.owner_id) != str(current_user.id)
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail="Notebook not found",
+        )
+
+    return notebook
 
 
 def _last_viewed_sort_key(item: RecentlyViewedResponse) -> str:
@@ -62,6 +92,7 @@ def _recently_viewed_source(row: dict) -> RecentlyViewedResponse:
 async def get_notebooks(
     archived: Optional[bool] = Query(None, description="Filter by archived status"),
     order_by: str = Query("updated desc", description="Order by field and direction"),
+    current_user: User = Depends(get_current_user),
 ):
     """Get all notebooks with optional filtering and ordering."""
     try:
@@ -96,10 +127,14 @@ async def get_notebooks(
             count(<-reference.in) as source_count,
             count(<-artifact.in) as note_count
             FROM notebook
+            WHERE owner_id = $owner_id
             ORDER BY {validated_order_by}
         """
 
-        result = await repo_query(query)
+        result = await repo_query(
+            query,
+            {"owner_id": ensure_record_id(current_user.id)},
+        )
 
         # Filter by archived status if specified
         if archived is not None:
@@ -130,12 +165,16 @@ async def get_notebooks(
 
 
 @router.post("/notebooks", response_model=NotebookResponse)
-async def create_notebook(notebook: NotebookCreate):
+async def create_notebook(
+    notebook: NotebookCreate,
+    current_user: User = Depends(get_current_user),
+):
     """Create a new notebook."""
     try:
         new_notebook = Notebook(
             name=notebook.name,
             description=notebook.description,
+            owner_id=current_user.id,
         )
         await new_notebook.save()
 
@@ -165,6 +204,7 @@ async def create_notebook(notebook: NotebookCreate):
 @router.get("/recently-viewed", response_model=List[RecentlyViewedResponse])
 async def get_recently_viewed(
     limit: int = Query(12, ge=1, le=50, description="Number of items to return"),
+    current_user: User = Depends(get_current_user),
 ):
     """Get recently viewed notebooks and sources, newest first."""
     try:
@@ -172,11 +212,16 @@ async def get_recently_viewed(
             """
             SELECT id, name AS title, last_viewed_at
             FROM notebook
-            WHERE last_viewed_at != NONE AND last_viewed_at != NULL
+            WHERE owner_id = $owner_id
+              AND last_viewed_at != NONE
+              AND last_viewed_at != NULL
             ORDER BY last_viewed_at DESC
             LIMIT $limit
             """,
-            {"limit": limit},
+            {
+                "limit": limit,
+                "owner_id": ensure_record_id(current_user.id),
+            },
         )
         sources = await repo_query(
             """
@@ -211,10 +256,13 @@ async def get_recently_viewed(
 @router.get(
     "/notebooks/{notebook_id}/delete-preview", response_model=NotebookDeletePreview
 )
-async def get_notebook_delete_preview(notebook_id: str):
+async def get_notebook_delete_preview(
+    notebook_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Get a preview of what will be deleted when this notebook is deleted."""
     try:
-        notebook = await Notebook.get(notebook_id)
+        notebook = await _get_owned_notebook(notebook_id, current_user)
 
         preview = await notebook.get_delete_preview()
 
@@ -240,9 +288,14 @@ async def get_notebook_delete_preview(notebook_id: str):
 
 
 @router.get("/notebooks/{notebook_id}", response_model=NotebookResponse)
-async def get_notebook(notebook_id: str):
+async def get_notebook(
+    notebook_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Get a specific notebook by ID."""
     try:
+        await _get_owned_notebook(notebook_id, current_user)
+        
         # Query with counts for single notebook
         query = """
             SELECT *,
@@ -280,10 +333,14 @@ async def get_notebook(notebook_id: str):
 
 
 @router.put("/notebooks/{notebook_id}", response_model=NotebookResponse)
-async def update_notebook(notebook_id: str, notebook_update: NotebookUpdate):
+async def update_notebook(
+    notebook_id: str,
+    notebook_update: NotebookUpdate,
+    current_user: User = Depends(get_current_user),
+):
     """Update a notebook."""
     try:
-        notebook = await Notebook.get(notebook_id)
+        notebook = await _get_owned_notebook(notebook_id, current_user)
 
         # Update only provided fields
         if notebook_update.name is not None:
@@ -344,11 +401,15 @@ async def update_notebook(notebook_id: str, notebook_update: NotebookUpdate):
 
 
 @router.post("/notebooks/{notebook_id}/sources/{source_id}")
-async def add_source_to_notebook(notebook_id: str, source_id: str):
+async def add_source_to_notebook(
+    notebook_id: str,
+    source_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Add an existing source to a notebook (create the reference)."""
     try:
         # Verify the notebook and source exist (raises NotFoundError -> 404)
-        await Notebook.get(notebook_id)
+        await _get_owned_notebook(notebook_id, current_user)
         await Source.get(source_id)
 
         # Check if reference already exists (idempotency)
@@ -387,11 +448,15 @@ async def add_source_to_notebook(notebook_id: str, source_id: str):
 
 
 @router.delete("/notebooks/{notebook_id}/sources/{source_id}")
-async def remove_source_from_notebook(notebook_id: str, source_id: str):
+async def remove_source_from_notebook(
+    notebook_id: str,
+    source_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Remove a source from a notebook (delete the reference)."""
     try:
         # Verify the notebook exists (raises NotFoundError -> 404)
-        await Notebook.get(notebook_id)
+        await _get_owned_notebook(notebook_id, current_user)
 
         # Delete the reference record linking source to notebook
         await repo_query(
@@ -425,6 +490,7 @@ async def delete_notebook(
         False,
         description="Whether to delete sources that belong only to this notebook",
     ),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Delete a notebook with cascade deletion.
@@ -434,7 +500,7 @@ async def delete_notebook(
     to this notebook (not linked to any other notebooks).
     """
     try:
-        notebook = await Notebook.get(notebook_id)
+        notebook = await _get_owned_notebook(notebook_id, current_user)
 
         result = await notebook.delete(
             delete_exclusive_sources=delete_exclusive_sources
