@@ -52,7 +52,6 @@ services:
       # 5055, which on this shared host is the upstream instance — without
       # this override the fork UI silently talks to the upstream API.
       - API_URL=${API_URL:?Set API_URL in .env, e.g. http://<server-ip>:5056}
-      - CORS_ORIGINS=${CORS_ORIGINS:?Set CORS_ORIGINS in .env, e.g. http://localhost:3000}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
