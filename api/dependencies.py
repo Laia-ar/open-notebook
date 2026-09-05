@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import HTTPException, Request
 
 from open_notebook.domain.session import UserSession

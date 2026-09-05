@@ -13,8 +13,8 @@ from api.models import (
     RecentlyViewedResponse,
 )
 from open_notebook.database.repository import ensure_record_id, repo_query
-from open_notebook.domain.user import User
 from open_notebook.domain.notebook import Notebook, Source
+from open_notebook.domain.user import User
 from open_notebook.exceptions import (
     InvalidInputError,
     NotFoundError,
@@ -130,6 +130,7 @@ async def get_notebooks(
             ORDER BY {validated_order_by}
         """
 
+        assert current_user.id is not None
         result = await repo_query(
             query,
             {"owner_id": ensure_record_id(current_user.id)},
@@ -207,6 +208,7 @@ async def get_recently_viewed(
 ):
     """Get recently viewed notebooks and sources, newest first."""
     try:
+        assert current_user.id is not None
         notebooks = await repo_query(
             """
             SELECT id, name AS title, last_viewed_at
