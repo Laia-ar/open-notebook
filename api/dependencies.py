@@ -3,7 +3,6 @@ from fastapi import HTTPException, Request
 from open_notebook.domain.session import UserSession
 from open_notebook.domain.user import User
 
-
 OPEN_NOTEBOOK_SESSION_COOKIE = "open_notebook_session"
 
 

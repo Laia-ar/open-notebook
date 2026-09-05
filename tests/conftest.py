@@ -29,3 +29,20 @@ else:
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+from api.dependencies import get_current_user  # noqa: E402
+from api.main import app  # noqa: E402
+from open_notebook.domain.user import User  # noqa: E402
+
+
+def _fake_current_user() -> User:
+    """Test-only stand-in for the real Google-session auth dependency.
+
+    Routes protected by get_current_user expect a logged-in owner; without
+    this override every protected endpoint returns 401 in tests instead of
+    exercising its actual logic.
+    """
+    return User(id="app_user:test", name="Test User", email="test@example.com")
+
+
+app.dependency_overrides[get_current_user] = _fake_current_user
