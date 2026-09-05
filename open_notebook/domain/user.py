@@ -1,6 +1,8 @@
 import re
 from typing import ClassVar, Optional
+
 from pydantic import field_validator
+
 from open_notebook.domain.base import ObjectModel
 
 
