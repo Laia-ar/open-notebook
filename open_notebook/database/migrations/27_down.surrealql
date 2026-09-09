@@ -1,0 +1,5 @@
+REMOVE INDEX IF EXISTS idx_source_type_id ON TABLE source;
+REMOVE FIELD IF EXISTS source_type_id ON TABLE source;
+
+REMOVE INDEX IF EXISTS idx_source_type_name ON TABLE source_type;
+REMOVE FIELD IF EXISTS source_type;

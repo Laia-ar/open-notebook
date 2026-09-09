@@ -1,0 +1,48 @@
+DEFINE TABLE IF NOT EXISTS source_type SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS name
+    ON TABLE source_type
+        TYPE string;
+
+DEFINE FIELD IF NOT EXISTS is_active
+    ON TABLE source_type
+    TYPE bool
+    DEFAULT true;
+
+DEFINE FIELD IF NOT EXISTS created
+    ON TABLE source_type
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE FIELD IF NOT EXISTS updated
+    ON TABLE source_type
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_source_type_name
+    ON TABLE source_type
+    COLUMNS name
+    UNIQUE;
+
+DEFINE FIELD IF NOT EXISTS source_type_id
+    ON TABLE source
+    TYPE option<record<source_type>>;
+
+DEFINE INDEX IF NOT EXISTS idx_source_type_id
+    ON TABLE source
+    COLUMNS source_type_id;
+
+CREATE source_type CONTENT{
+    name: "Diarios",
+    is_active: true
+};
+
+CREATE source_type CONTENT{
+    name: "Papers",
+    is_active: true
+};
+
+CREATE source_type CONTENT{
+    name:"Internet",
+    is_active: true
+}
