@@ -317,6 +317,11 @@ class SourceCreate(BaseModel):
     file_path: Optional[str] = Field(None, description="File path for upload type")
     content: Optional[str] = Field(None, description="Text content for text type")
     title: Optional[str] = Field(None, description="Source title")
+
+    source_type_id: Optional[str] = Field(
+        None, description="Source category ID"
+    )
+
     transformations: Optional[List[str]] = Field(
         default_factory=list,
         max_length=50,
@@ -353,12 +358,20 @@ class SourceCreate(BaseModel):
 
 class SourceUpdate(BaseModel):
     title: Optional[str] = Field(None, description="Source title")
+
+    source_type_id: Optional[str] = Field(
+        None, description="Source category ID"
+    )
+
     topics: Optional[List[str]] = Field(None, description="Source topics")
 
 
 class SourceResponse(BaseModel):
     id: str
     title: Optional[str]
+
+    source_type_id: Optional[str] = None
+
     topics: Optional[List[str]]
     asset: Optional[AssetModel]
     full_text: Optional[str]

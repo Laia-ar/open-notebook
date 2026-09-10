@@ -2,6 +2,7 @@ import asyncio
 import os
 from pathlib import Path
 from typing import Any, List, Optional
+from open_notebook.domain.source_type import SourceType
 
 from content_core import check_file_support
 from fastapi import (
@@ -190,6 +191,7 @@ def parse_source_form_data(
     url: Optional[str] = Form(None),
     content: Optional[str] = Form(None),
     title: Optional[str] = Form(None),
+    source_type_id: Optional[str] = Form(None),  
     transformations: Optional[str] = Form(None),  # JSON string of transformation IDs
     embed: str = Form("false"),  # Accept as string, convert to bool
     delete_source: str = Form("false"),  # Accept as string, convert to bool
@@ -237,6 +239,7 @@ def parse_source_form_data(
             url=url,
             content=content,
             title=title,
+            source_type_id=source_type_id,
             file_path=None,  # Will be set later if file is uploaded
             transformations=transformations_list,
             embed=embed_bool,
@@ -252,6 +255,25 @@ def parse_source_form_data(
         raise
 
     return source_data, file
+
+@router.get("/source-types")
+async def get_source_types():
+    """Get active source types."""
+    try:
+        source_types = await SourceType.get_all()
+
+        return [
+            {
+                "id": source_type.id,
+                "name": source_type.name,
+                "is_active": source_type.is_active,
+            }
+            for source_type in source_types
+            if source_type.is_active
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching source types: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching source types")
 
 
 @router.get("/sources", response_model=List[SourceListResponse])
@@ -393,6 +415,7 @@ def _source_to_response(
     fields: dict[str, Any] = {
         "id": source.id or "",
         "title": source.title,
+        "source_type_id": str(source.source_type_id) if source.source_type_id else None,
         "topics": source.topics or [],
         "asset": AssetModel(
             file_path=source.asset.file_path,
@@ -498,6 +521,7 @@ async def _create_source_async_path(
         title=source_data.title or "Processing...",
         topics=[],
         asset=source_asset,
+        source_type_id=source_data.source_type_id,
     )
     await source.save()
 
@@ -579,6 +603,7 @@ async def _create_source_sync_path(
         source = Source(
             title=source_data.title or "Processing...",
             topics=[],
+            source_type_id=source_data.source_type_id,
         )
         await source.save()
 
@@ -913,6 +938,8 @@ async def update_source(source_id: str, source_update: SourceUpdate):
         # Update only provided fields
         if source_update.title is not None:
             source.title = source_update.title
+        if source_update.source_type_id is not None:
+            source.source_type_id = source_update.source_type_id
         if source_update.topics is not None:
             source.topics = source_update.topics
 

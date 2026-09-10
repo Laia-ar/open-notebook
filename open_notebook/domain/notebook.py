@@ -417,6 +417,17 @@ class Source(ObjectModel):
     topics: Optional[List[str]] = Field(default_factory=list)
     full_text: Optional[str] = None
     last_viewed_at: Optional[datetime] = None
+    source_type_id: Optional[Union[str, RecordID]] = None
+    
+    @field_validator("source_type_id", mode="before")
+    @classmethod
+    def parse_source_type_id(cls,value):
+        if value is None:
+            return None
+        if isinstance(value, RecordID):
+            return value
+        return ensure_record_id(value)
+
     command: Optional[Union[str, RecordID]] = Field(
         default=None, description="Link to surreal-commands processing job"
     )
