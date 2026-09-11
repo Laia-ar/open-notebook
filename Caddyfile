@@ -1,0 +1,12 @@
+{
+	leandroaparicio91@gmail.com 
+}
+
+64-176-11-56.nip.io {
+	handle /api/* {
+		reverse_proxy open_notebook:5055
+	}
+	handle {
+		reverse_proxy open_notebook:8502
+	}
+}
