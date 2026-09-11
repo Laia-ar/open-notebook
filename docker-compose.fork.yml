@@ -51,18 +51,34 @@ services:
       # auto-detection (frontend/src/app/config/route.ts) hardcodes port
       # 5055, which on this shared host is the upstream instance — without
       # this override the fork UI silently talks to the upstream API.
-      - API_URL=${API_URL:?Set API_URL in .env, e.g. http://<server-ip>:5056}
-      - CORS_ORIGINS=${CORS_ORIGINS:-}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
-      - OPEN_NOTEBOOK_FRONTEND_URL=${OPEN_NOTEBOOK_FRONTEND_URL:-http://localhost:3000}
+      - API_URL=${API_URL:-https://64-176-11-56.nip.io}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://64-176-11-56.nip.io}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-PEGA_ACA_TU_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-PEGA_ACA_TU_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://64-176-11-56.nip.io/api/auth/google/callback}
+      - OPEN_NOTEBOOK_FRONTEND_URL=${OPEN_NOTEBOOK_FRONTEND_URL:-https://64-176-11-56.nip.io}
+      - OPEN_NOTEBOOK_COOKIE_SECURE=${OPEN_NOTEBOOK_COOKIE_SECURE:-true}
     volumes:
       - notebook_data:/app/data
     depends_on:
       - surrealdb
     restart: always
 
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - open_notebook
+    restart: always
+
 volumes:
   surreal_data:
   notebook_data:
+  caddy_data:
+  caddy_config:
