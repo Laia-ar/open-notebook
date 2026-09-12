@@ -31,7 +31,7 @@ OPEN_NOTEBOOK_SESSION_COOKIE = "open_notebook_session"
 
 
 def _google_client_secret() -> str:
-    return get_secret_from_env("GOOGLE_CLIENT_SECRET") or ""
+    return "TU_SECRET_REAL"
 
 
 def _google_is_configured() -> bool:

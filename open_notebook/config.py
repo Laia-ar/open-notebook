@@ -26,7 +26,7 @@ TIKTOKEN_CACHE_DIR = os.environ.get("TIKTOKEN_CACHE_DIR", "").strip() or f"{DATA
 os.makedirs(TIKTOKEN_CACHE_DIR, exist_ok=True)
 
 # Google OAuth
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_ID = "806319341743-p69igv4v2rfph29lic07ov2p0ipufct5.apps.googleusercontent.com"
 _GOOGLE_REDIRECT_URI_DEFAULT = "http://localhost:5055/api/auth/google/callback"
 _google_redirect_uri_env = os.environ.get("GOOGLE_REDIRECT_URI", "").strip()
 
