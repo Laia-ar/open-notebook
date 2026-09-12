@@ -27,10 +27,19 @@ os.makedirs(TIKTOKEN_CACHE_DIR, exist_ok=True)
 
 # Google OAuth
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
-GOOGLE_REDIRECT_URI = os.environ.get(
-    "GOOGLE_REDIRECT_URI",
-    "http://localhost:5055/api/auth/google/callback",
-).strip()
+_GOOGLE_REDIRECT_URI_DEFAULT = "http://localhost:5055/api/auth/google/callback"
+_google_redirect_uri_env = os.environ.get("GOOGLE_REDIRECT_URI", "").strip()
+
+# Solo usamos el valor del .env si tiene forma de URL válida y termina en la
+# ruta esperada. Si está vacío, mal escrito o incompleto (como pasó en el
+# servidor: "http://64.176.11.56:8503" sin la ruta del callback), caemos al
+# valor hardcodeado en vez de mandarle ese valor roto a Google.
+if _google_redirect_uri_env.startswith(("http://", "https://")) and _google_redirect_uri_env.endswith(
+    "/api/auth/google/callback"
+):
+    GOOGLE_REDIRECT_URI = _google_redirect_uri_env
+else:
+    GOOGLE_REDIRECT_URI = _GOOGLE_REDIRECT_URI_DEFAULT
 
 OPEN_NOTEBOOK_FRONTEND_URL = os.environ.get(
     "OPEN_NOTEBOOK_FRONTEND_URL",
