@@ -51,12 +51,17 @@ services:
       # auto-detection (frontend/src/app/config/route.ts) hardcodes port
       # 5055, which on this shared host is the upstream instance — without
       # this override the fork UI silently talks to the upstream API.
-      - API_URL=${API_URL:?Set API_URL in .env, e.g. http://<server-ip>:5056}
-      - CORS_ORIGINS=${CORS_ORIGINS:-}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
-      - OPEN_NOTEBOOK_FRONTEND_URL=${OPEN_NOTEBOOK_FRONTEND_URL:-http://localhost:3000}
+      - API_URL=${API_URL:-http://64.176.11.56:5056}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://64.176.11.56:8503}
+
+      # Hardcoded fallback (temporary): used only if these are not set in
+      # the server's .env. GOOGLE_REDIRECT_URI here is localhost-only — the
+      # Google login button will appear but the login will NOT complete for
+      # external users until a real domain with HTTPS is configured
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-806319341743-p69igv4v2rfph29lic07ov2p0ipufcg5.apps.googleusercontent.com}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-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}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:5055/api/auth/google/callback}
+      - OPEN_NOTEBOOK_FRONTEND_URL=${OPEN_NOTEBOOK_FRONTEND_URL:-http://64.176.11.56:8503}
     volumes:
       - notebook_data:/app/data
     depends_on:
