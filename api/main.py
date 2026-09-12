@@ -244,6 +244,10 @@ app.add_middleware(
         "/redoc",
         "/api/auth/status",
         "/api/config",
+        "/api/auth/google/login",
+        "/api/auth/google/callback",
+        "/api/auth/me",
+        "/api/auth/logout",
     ],
 )
 
