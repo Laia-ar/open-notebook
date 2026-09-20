@@ -46,6 +46,12 @@ class PasswordAuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in self.excluded_paths:
             return await call_next(request)
 
+        # Skip authentication for the public (no-login) notebook endpoints —
+        # these already check notebook.is_public themselves before returning
+        # anything, so they are safe to leave open here.
+        if request.url.path.startswith("/api/public/"):
+            return await call_next(request)
+
         # Skip authentication for CORS preflight requests (OPTIONS)
         if request.method == "OPTIONS":
             return await call_next(request)

@@ -34,10 +34,18 @@ class NotebookResponse(BaseModel):
 
 class NotebookShareCreate(BaseModel):
     email: str = Field(..., description="Email of the user to share this notebook with")
+    role: str = Field(
+        "viewer", description="Access level: 'viewer' or 'editor'"
+    )
+
+
+class NotebookShareUpdate(BaseModel):
+    role: str = Field(..., description="Access level: 'viewer' or 'editor'")
 
 
 class NotebookShareResponse(BaseModel):
     email: str
+    role: str
     created: str
 
 

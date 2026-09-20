@@ -127,8 +127,45 @@ export function useShareNotebook() {
   const { t } = useTranslation()
 
   return useMutation({
-    mutationFn: ({ notebookId, email }: { notebookId: string; email: string }) =>
-      notebooksApi.share(notebookId, email),
+    mutationFn: ({
+      notebookId,
+      email,
+      role = 'viewer',
+    }: {
+      notebookId: string
+      email: string
+      role?: 'viewer' | 'editor'
+    }) => notebooksApi.share(notebookId, email, role),
+    onSuccess: (_, { notebookId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.notebook(notebookId), 'share'],
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: t('common.error'),
+        description: t(getApiErrorKey(error, t('common.error'))),
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useUpdateShareRole() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const { t } = useTranslation()
+
+  return useMutation({
+    mutationFn: ({
+      notebookId,
+      email,
+      role,
+    }: {
+      notebookId: string
+      email: string
+      role: 'viewer' | 'editor'
+    }) => notebooksApi.updateShareRole(notebookId, email, role),
     onSuccess: (_, { notebookId }) => {
       queryClient.invalidateQueries({
         queryKey: [...QUERY_KEYS.notebook(notebookId), 'share'],

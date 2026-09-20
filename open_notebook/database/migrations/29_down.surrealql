@@ -1,0 +1,3 @@
+-- Rollback Migration 29
+
+REMOVE FIELD IF EXISTS role ON TABLE notebook_share;

@@ -12,6 +12,7 @@ export interface NotebookResponse {
 
 export interface NotebookShareResponse {
   email: string
+  role: 'viewer' | 'editor'
   created: string
 }
 

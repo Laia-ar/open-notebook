@@ -1,0 +1,7 @@
+-- Migration 29: Add per-person role (viewer/editor) to notebook sharing
+
+DEFINE FIELD IF NOT EXISTS role
+    ON TABLE notebook_share
+    TYPE string
+    ASSERT $value IN ["viewer", "editor"]
+    DEFAULT "viewer";

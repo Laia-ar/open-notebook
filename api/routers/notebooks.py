@@ -11,6 +11,7 @@ from api.models import (
     NotebookResponse,
     NotebookShareCreate,
     NotebookShareResponse,
+    NotebookShareUpdate,
     NotebookUpdate,
     RecentlyViewedResponse,
     UserSearchResult,
@@ -582,7 +583,9 @@ async def list_notebook_shares(
         await _get_owned_notebook(notebook_id, current_user)
         shares = await NotebookShare.list_for_notebook(notebook_id)
         return [
-            NotebookShareResponse(email=share.email, created=str(share.created))
+            NotebookShareResponse(
+                email=share.email, role=share.role, created=str(share.created)
+            )
             for share in shares
         ]
     except HTTPException:
@@ -605,9 +608,13 @@ async def share_notebook(
     """Share this notebook with another user's email. Owner only."""
     try:
         await _get_owned_notebook(notebook_id, current_user)
-        record = NotebookShare(notebook_id=notebook_id, email=share.email)
+        record = NotebookShare(
+            notebook_id=notebook_id, email=share.email, role=share.role
+        )
         await record.save()
-        return NotebookShareResponse(email=record.email, created=str(record.created))
+        return NotebookShareResponse(
+            email=record.email, role=record.role, created=str(record.created)
+        )
     except HTTPException:
         raise
     except InvalidInputError as e:
@@ -617,6 +624,34 @@ async def share_notebook(
     except Exception as e:
         logger.error(f"Error sharing notebook {notebook_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error sharing notebook: {str(e)}")
+
+
+@router.put(
+    "/notebooks/{notebook_id}/share/{email}", response_model=NotebookShareResponse
+)
+async def update_notebook_share(
+    notebook_id: str,
+    email: str,
+    update: NotebookShareUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    """Change a shared user's role (viewer/editor). Owner only."""
+    try:
+        await _get_owned_notebook(notebook_id, current_user)
+        record = NotebookShare(notebook_id=notebook_id, email=email, role=update.role)
+        await record.save()
+        return NotebookShareResponse(
+            email=record.email, role=record.role, created=str(record.created)
+        )
+    except HTTPException:
+        raise
+    except InvalidInputError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating share role for notebook {notebook_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating share role: {str(e)}")
 
 
 @router.delete("/notebooks/{notebook_id}/share/{email}")

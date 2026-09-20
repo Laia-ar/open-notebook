@@ -12,15 +12,21 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { X } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { X, Globe, Lock } from 'lucide-react'
 import { NotebookResponse } from '@/lib/types/api'
 import {
   useUpdateNotebook,
   useNotebookShares,
   useShareNotebook,
   useUnshareNotebook,
+  useUpdateShareRole,
   useUserSearch,
 } from '@/lib/hooks/use-notebooks'
 
@@ -41,9 +47,8 @@ export function NotebookSharingDialog({
   const { data: shares = [] } = useNotebookShares(notebook.id, open)
   const shareNotebook = useShareNotebook()
   const unshareNotebook = useUnshareNotebook()
+  const updateShareRole = useUpdateShareRole()
   const { data: suggestions = [] } = useUserSearch(emailInput)
-
-  const visibility = notebook.is_public ? 'public' : 'private'
 
   const handleVisibilityChange = (value: string) => {
     updateNotebook.mutate({
@@ -55,7 +60,7 @@ export function NotebookSharingDialog({
   const addEmail = (email: string) => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed) return
-    shareNotebook.mutate({ notebookId: notebook.id, email: trimmed })
+    shareNotebook.mutate({ notebookId: notebook.id, email: trimmed, role: 'viewer' })
     setEmailInput('')
   }
 
@@ -66,89 +71,122 @@ export function NotebookSharingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Compartir notebook</DialogTitle>
+          <DialogTitle>Compartir &quot;{notebook.name}&quot;</DialogTitle>
           <DialogDescription>
-            Elegí quién puede ver &quot;{notebook.name}&quot;.
+            Invitá personas específicas, o dejalo público para cualquiera con el link.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <RadioGroup value={visibility} onValueChange={handleVisibilityChange}>
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="private" id="visibility-private" />
-              <Label htmlFor="visibility-private" className="cursor-pointer">
-                Privado — solo vos y quien invites
-              </Label>
-            </div>
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="public" id="visibility-public" />
-              <Label htmlFor="visibility-public" className="cursor-pointer">
-                Público — cualquier usuario logueado puede verlo
-              </Label>
-            </div>
-          </RadioGroup>
+          <div className="relative">
+            <Input
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addEmail(emailInput)
+                }
+              }}
+              placeholder="Agregar personas por email"
+              autoComplete="off"
+            />
+            {visibleSuggestions.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md">
+                {visibleSuggestions.map((user) => (
+                  <button
+                    key={user.email}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                    onClick={() => addEmail(user.email)}
+                  >
+                    <div className="font-medium">{user.name}</div>
+                    <div className="text-muted-foreground text-xs">{user.email}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {visibility === 'private' && (
-            <div className="space-y-3 pt-2 border-t">
-              <div className="space-y-2 pt-3">
-                <Label htmlFor="share-email">Invitar por email</Label>
-                <div className="relative">
-                  <Input
-                    id="share-email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addEmail(emailInput)
-                      }
-                    }}
-                    placeholder="nombre@laia.com.ar"
-                    autoComplete="off"
-                  />
-                  {visibleSuggestions.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md">
-                      {visibleSuggestions.map((user) => (
-                        <button
-                          key={user.email}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                          onClick={() => addEmail(user.email)}
-                        >
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-muted-foreground text-xs">
-                            {user.email}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+          <div className="space-y-2">
+            <Label className="text-muted-foreground text-xs">
+              Personas que tienen acceso
+            </Label>
+
+            <div className="flex items-center justify-between py-1">
+              <span className="text-sm">Vos (propietario)</span>
+              <span className="text-xs text-muted-foreground">Propietario</span>
+            </div>
+
+            {shares.map((share) => (
+              <div key={share.email} className="flex items-center justify-between gap-2 py-1">
+                <span className="text-sm truncate">{share.email}</span>
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={share.role}
+                    onValueChange={(role) =>
+                      updateShareRole.mutate({
+                        notebookId: notebook.id,
+                        email: share.email,
+                        role: role as 'viewer' | 'editor',
+                      })
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-[110px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">Lector</SelectItem>
+                      <SelectItem value="editor">Editor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      unshareNotebook.mutate({ notebookId: notebook.id, email: share.email })
+                    }
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
+            ))}
+          </div>
 
-              {shares.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {shares.map((share) => (
-                    <Badge key={share.email} variant="secondary" className="gap-1">
-                      {share.email}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          unshareNotebook.mutate({
-                            notebookId: notebook.id,
-                            email: share.email,
-                          })
-                        }
-                        className="ml-1"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+          <div className="space-y-2 pt-2 border-t">
+            <Label className="text-muted-foreground text-xs">Acceso general</Label>
+            <button
+              type="button"
+              onClick={() => handleVisibilityChange('private')}
+              className={`w-full flex items-start gap-3 rounded-md border p-3 text-left ${
+                !notebook.is_public ? 'border-primary bg-accent' : ''
+              }`}
+            >
+              <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-sm font-medium">Privado</div>
+                <div className="text-xs text-muted-foreground">
+                  Solo vos y las personas invitadas arriba pueden entrar.
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleVisibilityChange('public')}
+              className={`w-full flex items-start gap-3 rounded-md border p-3 text-left ${
+                notebook.is_public ? 'border-primary bg-accent' : ''
+              }`}
+            >
+              <Globe className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-sm font-medium">Público</div>
+                <div className="text-xs text-muted-foreground">
+                  Cualquiera con el link puede entrar, solo para ver
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
 
         <DialogFooter>

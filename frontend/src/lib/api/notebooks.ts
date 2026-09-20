@@ -68,10 +68,22 @@ export const notebooksApi = {
     return response.data
   },
 
-  share: async (notebookId: string, email: string) => {
+  share: async (notebookId: string, email: string, role: 'viewer' | 'editor' = 'viewer') => {
     const response = await apiClient.post<NotebookShareResponse>(
       `/notebooks/${notebookId}/share`,
-      { email }
+      { email, role }
+    )
+    return response.data
+  },
+
+  updateShareRole: async (
+    notebookId: string,
+    email: string,
+    role: 'viewer' | 'editor'
+  ) => {
+    const response = await apiClient.put<NotebookShareResponse>(
+      `/notebooks/${notebookId}/share/${encodeURIComponent(email)}`,
+      { role }
     )
     return response.data
   },

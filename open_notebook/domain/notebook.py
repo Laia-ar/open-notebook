@@ -863,11 +863,14 @@ class NotebookShare(ObjectModel):
     table_name: ClassVar[str] = "notebook_share"
     notebook_id: str
     email: str
+    role: str = "viewer"
 
     def _prepare_save_data(self) -> dict:
         data = super()._prepare_save_data()
         data["notebook_id"] = ensure_record_id(data["notebook_id"])
         data["email"] = data["email"].strip().lower()
+        if data.get("role") not in ("viewer", "editor"):
+            data["role"] = "viewer"
         return data
 
     @classmethod
