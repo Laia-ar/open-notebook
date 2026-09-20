@@ -6,6 +6,7 @@ import {
   UpdateNotebookRequest,
   NotebookDeletePreview,
   NotebookDeleteResponse,
+  NotebookShareResponse,
 } from '@/lib/types/api'
 
 export const notebooksApi = {
@@ -57,6 +58,28 @@ export const notebooksApi = {
 
   removeSource: async (notebookId: string, sourceId: string) => {
     const response = await apiClient.delete(`/notebooks/${notebookId}/sources/${sourceId}`)
+    return response.data
+  },
+
+  listShares: async (notebookId: string) => {
+    const response = await apiClient.get<NotebookShareResponse[]>(
+      `/notebooks/${notebookId}/share`
+    )
+    return response.data
+  },
+
+  share: async (notebookId: string, email: string) => {
+    const response = await apiClient.post<NotebookShareResponse>(
+      `/notebooks/${notebookId}/share`,
+      { email }
+    )
+    return response.data
+  },
+
+  unshare: async (notebookId: string, email: string) => {
+    const response = await apiClient.delete(
+      `/notebooks/${notebookId}/share/${encodeURIComponent(email)}`
+    )
     return response.data
   },
 }

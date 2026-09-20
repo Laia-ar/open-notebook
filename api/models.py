@@ -15,6 +15,9 @@ class NotebookUpdate(BaseModel):
     archived: Optional[bool] = Field(
         None, description="Whether the notebook is archived"
     )
+    is_public: Optional[bool] = Field(
+        None, description="Whether the notebook is visible to any logged-in user"
+    )
 
 
 class NotebookResponse(BaseModel):
@@ -22,10 +25,25 @@ class NotebookResponse(BaseModel):
     name: str
     description: str
     archived: bool
+    is_public: bool = False
     created: str
     updated: str
     source_count: int
     note_count: int
+
+
+class NotebookShareCreate(BaseModel):
+    email: str = Field(..., description="Email of the user to share this notebook with")
+
+
+class NotebookShareResponse(BaseModel):
+    email: str
+    created: str
+
+
+class UserSearchResult(BaseModel):
+    name: str
+    email: str
 
 
 class RecentlyViewedResponse(BaseModel):

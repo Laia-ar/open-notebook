@@ -3,10 +3,21 @@ export interface NotebookResponse {
   name: string
   description: string
   archived: boolean
+  is_public: boolean
   created: string
   updated: string
   source_count: number
   note_count: number
+}
+
+export interface NotebookShareResponse {
+  email: string
+  created: string
+}
+
+export interface UserSearchResult {
+  name: string
+  email: string
 }
 
 export interface NoteResponse {
@@ -78,6 +89,7 @@ export interface UpdateNotebookRequest {
   name?: string
   description?: string
   archived?: boolean
+  is_public?: boolean
 }
 
 export interface NotebookDeletePreview {

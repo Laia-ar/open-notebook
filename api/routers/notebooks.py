@@ -9,11 +9,14 @@ from api.models import (
     NotebookDeletePreview,
     NotebookDeleteResponse,
     NotebookResponse,
+    NotebookShareCreate,
+    NotebookShareResponse,
     NotebookUpdate,
     RecentlyViewedResponse,
+    UserSearchResult,
 )
 from open_notebook.database.repository import ensure_record_id, repo_query
-from open_notebook.domain.notebook import Notebook, Source
+from open_notebook.domain.notebook import Notebook, NotebookShare, Source
 from open_notebook.domain.user import User
 from open_notebook.exceptions import (
     InvalidInputError,
@@ -49,6 +52,41 @@ async def _get_owned_notebook(
         )
 
     return notebook
+
+
+async def _get_viewable_notebook(
+    notebook_id: str,
+    current_user: User,
+) -> Notebook:
+    """
+    Retrieves a notebook if the current user can view it: they own it, it's
+    public, or their email is on the notebook's share list. This is
+    read-only access — every edit/delete endpoint keeps using
+    _get_owned_notebook above, which stays strictly owner-only.
+    """
+    try:
+        notebook = await Notebook.get(notebook_id)
+    except NotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Notebook not found",
+        )
+
+    is_owner = bool(notebook.owner_id) and str(notebook.owner_id) == str(
+        current_user.id
+    )
+    if is_owner or notebook.is_public:
+        return notebook
+
+    if current_user.email and await NotebookShare.is_shared_with(
+        str(notebook.id), current_user.email
+    ):
+        return notebook
+
+    raise HTTPException(
+        status_code=404,
+        detail="Notebook not found",
+    )
 
 
 def _last_viewed_sort_key(item: RecentlyViewedResponse) -> str:
@@ -146,6 +184,7 @@ async def get_notebooks(
                 name=nb.get("name", ""),
                 description=nb.get("description", ""),
                 archived=nb.get("archived", False),
+                is_public=nb.get("is_public", False),
                 created=str(nb.get("created", "")),
                 updated=str(nb.get("updated", "")),
                 source_count=nb.get("source_count", 0),
@@ -295,8 +334,8 @@ async def get_notebook(
 ):
     """Get a specific notebook by ID."""
     try:
-        await _get_owned_notebook(notebook_id, current_user)
-        
+        await _get_viewable_notebook(notebook_id, current_user)
+                
         # Query with counts for single notebook
         query = """
             SELECT *,
@@ -317,6 +356,7 @@ async def get_notebook(
             name=nb.get("name", ""),
             description=nb.get("description", ""),
             archived=nb.get("archived", False),
+            is_public=nb.get("is_public", False),
             created=str(nb.get("created", "")),
             updated=str(nb.get("updated", "")),
             source_count=nb.get("source_count", 0),
@@ -350,6 +390,8 @@ async def update_notebook(
             notebook.description = notebook_update.description
         if notebook_update.archived is not None:
             notebook.archived = notebook_update.archived
+        if notebook_update.is_public is not None:
+            notebook.is_public = notebook_update.is_public
 
         await notebook.save()
 
@@ -369,6 +411,7 @@ async def update_notebook(
                 name=nb.get("name", ""),
                 description=nb.get("description", ""),
                 archived=nb.get("archived", False),
+                is_public=nb.get("is_public", False),
                 created=str(nb.get("created", "")),
                 updated=str(nb.get("updated", "")),
                 source_count=nb.get("source_count", 0),
@@ -381,6 +424,7 @@ async def update_notebook(
             name=notebook.name,
             description=notebook.description,
             archived=notebook.archived or False,
+            is_public=notebook.is_public or False,
             created=str(notebook.created),
             updated=str(notebook.updated),
             source_count=0,
@@ -525,3 +569,102 @@ async def delete_notebook(
         raise HTTPException(
             status_code=500, detail=f"Error deleting notebook: {str(e)}"
         )
+
+@router.get(
+    "/notebooks/{notebook_id}/share", response_model=List[NotebookShareResponse]
+)
+async def list_notebook_shares(
+    notebook_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """List the emails this notebook is shared with. Owner only."""
+    try:
+        await _get_owned_notebook(notebook_id, current_user)
+        shares = await NotebookShare.list_for_notebook(notebook_id)
+        return [
+            NotebookShareResponse(email=share.email, created=str(share.created))
+            for share in shares
+        ]
+    except HTTPException:
+        raise
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing shares for notebook {notebook_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error listing notebook shares: {str(e)}"
+        )
+
+
+@router.post("/notebooks/{notebook_id}/share", response_model=NotebookShareResponse)
+async def share_notebook(
+    notebook_id: str,
+    share: NotebookShareCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """Share this notebook with another user's email. Owner only."""
+    try:
+        await _get_owned_notebook(notebook_id, current_user)
+        record = NotebookShare(notebook_id=notebook_id, email=share.email)
+        await record.save()
+        return NotebookShareResponse(email=record.email, created=str(record.created))
+    except HTTPException:
+        raise
+    except InvalidInputError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error sharing notebook {notebook_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error sharing notebook: {str(e)}")
+
+
+@router.delete("/notebooks/{notebook_id}/share/{email}")
+async def unshare_notebook(
+    notebook_id: str,
+    email: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Remove an email from this notebook's share list. Owner only."""
+    try:
+        await _get_owned_notebook(notebook_id, current_user)
+        await NotebookShare.remove(notebook_id, email)
+        return {"message": "Removed"}
+    except HTTPException:
+        raise
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing share from notebook {notebook_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error removing notebook share: {str(e)}"
+        )
+
+
+@router.get("/users/search", response_model=List[UserSearchResult])
+async def search_users(
+    q: str = Query("", description="Email prefix/substring to search for"),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Search among users already registered in this app (for the notebook
+    sharing autocomplete). Does NOT touch the logged-in user's Google
+    Contacts — only matches people who have already logged into this
+    instance at least once.
+    """
+    try:
+        query = (q or "").strip().lower()
+        if len(query) < 2:
+            return []
+        rows = await repo_query(
+            "SELECT name, email FROM app_user WHERE string::contains(string::lowercase(email), $q) LIMIT 10",
+            {"q": query},
+        )
+        return [
+            UserSearchResult(name=row.get("name", ""), email=row.get("email", ""))
+            for row in rows
+            if row.get("email")
+        ]
+    except Exception as e:
+        logger.error(f"Error searching users: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error searching users: {str(e)}")

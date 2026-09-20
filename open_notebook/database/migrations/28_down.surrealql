@@ -1,0 +1,6 @@
+-- Rollback Migration 28
+
+REMOVE INDEX IF EXISTS idx_notebook_share_unique ON TABLE notebook_share;
+REMOVE INDEX IF EXISTS idx_notebook_share_notebook_id ON TABLE notebook_share;
+REMOVE TABLE IF EXISTS notebook_share;
+REMOVE FIELD IF EXISTS is_public ON TABLE notebook;

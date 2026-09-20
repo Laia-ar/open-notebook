@@ -1,0 +1,30 @@
+-- Migration 28: Add public/private visibility and per-email sharing to notebooks
+
+DEFINE FIELD IF NOT EXISTS is_public
+    ON TABLE notebook
+    TYPE bool
+    DEFAULT false;
+
+DEFINE TABLE IF NOT EXISTS notebook_share SCHEMAFULL;
+
+DEFINE FIELD IF NOT EXISTS notebook_id
+    ON TABLE notebook_share
+    TYPE record<notebook>;
+
+DEFINE FIELD IF NOT EXISTS email
+    ON TABLE notebook_share
+    TYPE string;
+
+DEFINE FIELD IF NOT EXISTS created
+    ON TABLE notebook_share
+    TYPE datetime
+    DEFAULT time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_notebook_share_notebook_id
+    ON TABLE notebook_share
+    COLUMNS notebook_id;
+
+DEFINE INDEX IF NOT EXISTS idx_notebook_share_unique
+    ON TABLE notebook_share
+    COLUMNS notebook_id, email
+    UNIQUE;

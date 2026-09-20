@@ -18,6 +18,7 @@ class Notebook(ObjectModel):
     name: str
     description: str
     owner_id: Optional[str] = None
+    is_public: Optional[bool] = False
     archived: Optional[bool] = False
     last_viewed_at: Optional[datetime] = None
     
@@ -857,3 +858,37 @@ async def vector_search(
         logger.error(f"Error performing vector search: {str(e)}")
         logger.exception(e)
         raise DatabaseOperationError(e)
+
+class NotebookShare(ObjectModel):
+    table_name: ClassVar[str] = "notebook_share"
+    notebook_id: str
+    email: str
+
+    def _prepare_save_data(self) -> dict:
+        data = super()._prepare_save_data()
+        data["notebook_id"] = ensure_record_id(data["notebook_id"])
+        data["email"] = data["email"].strip().lower()
+        return data
+
+    @classmethod
+    async def list_for_notebook(cls, notebook_id: str) -> List["NotebookShare"]:
+        rows = await repo_query(
+            "SELECT * FROM notebook_share WHERE notebook_id = $notebook_id ORDER BY created ASC",
+            {"notebook_id": ensure_record_id(notebook_id)},
+        )
+        return [cls(**row) for row in rows] if rows else []
+
+    @classmethod
+    async def is_shared_with(cls, notebook_id: str, email: str) -> bool:
+        rows = await repo_query(
+            "SELECT * FROM notebook_share WHERE notebook_id = $notebook_id AND email = $email LIMIT 1",
+            {"notebook_id": ensure_record_id(notebook_id), "email": email.strip().lower()},
+        )
+        return bool(rows)
+
+    @classmethod
+    async def remove(cls, notebook_id: str, email: str) -> None:
+        await repo_query(
+            "DELETE notebook_share WHERE notebook_id = $notebook_id AND email = $email",
+            {"notebook_id": ensure_record_id(notebook_id), "email": email.strip().lower()},
+        )
