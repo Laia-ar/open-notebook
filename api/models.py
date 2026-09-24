@@ -16,7 +16,10 @@ class NotebookUpdate(BaseModel):
         None, description="Whether the notebook is archived"
     )
     is_public: Optional[bool] = Field(
-        None, description="Whether the notebook is visible to any logged-in user"
+        None, description="Whether anyone with the link can access, without logging in"
+    )
+    public_role: Optional[str] = Field(
+        None, description="Access level for public visitors: 'viewer' or 'editor'"
     )
 
 
@@ -26,6 +29,7 @@ class NotebookResponse(BaseModel):
     description: str
     archived: bool
     is_public: bool = False
+    public_role: str = "viewer"
     created: str
     updated: str
     source_count: int

@@ -4,6 +4,7 @@ export interface NotebookResponse {
   description: string
   archived: boolean
   is_public: boolean
+  public_role: 'viewer' | 'editor'
   created: string
   updated: string
   source_count: number
@@ -91,6 +92,7 @@ export interface UpdateNotebookRequest {
   description?: string
   archived?: boolean
   is_public?: boolean
+  public_role?: 'viewer' | 'editor'
 }
 
 export interface NotebookDeletePreview {

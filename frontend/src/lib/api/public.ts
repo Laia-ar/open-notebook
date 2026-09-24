@@ -4,6 +4,7 @@ export interface PublicNotebook {
   id: string
   name: string
   description: string
+  public_role: 'viewer' | 'editor'
 }
 
 export interface PublicSource {
@@ -35,6 +36,18 @@ export const publicApi = {
   getNotes: async (notebookId: string) => {
     const response = await apiClient.get<PublicNote[]>(
       `/public/notebooks/${notebookId}/notes`
+    )
+    return response.data
+  },
+  addSource: async (notebookId: string, sourceId: string) => {
+    const response = await apiClient.post(
+      `/public/notebooks/${notebookId}/sources/${sourceId}`
+    )
+    return response.data
+  },
+  removeSource: async (notebookId: string, sourceId: string) => {
+    const response = await apiClient.delete(
+      `/public/notebooks/${notebookId}/sources/${sourceId}`
     )
     return response.data
   },

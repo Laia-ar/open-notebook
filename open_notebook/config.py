@@ -53,3 +53,8 @@ OPEN_NOTEBOOK_SESSION_DAYS = int(
 OPEN_NOTEBOOK_COOKIE_SECURE = (
     os.environ.get("OPEN_NOTEBOOK_COOKIE_SECURE", "false").lower() == "true"
 )
+
+# Dominio de email permitido
+NOTEBOOK_SHARE_ALLOWED_DOMAIN = os.environ.get(
+    "NOTEBOOK_SHARE_ALLOWED_DOMAIN", "laia.com.ar"
+).strip().lower()

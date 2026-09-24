@@ -1,0 +1,7 @@
+-- Migration 30: Add a role (viewer/editor) for a notebook's public/general access
+
+DEFINE FIELD IF NOT EXISTS public_role
+    ON TABLE notebook
+    TYPE string
+    ASSERT $value IN ["viewer", "editor"]
+    DEFAULT "viewer";

@@ -51,7 +51,7 @@ export default function PublicNotebookPage() {
     <div className="max-w-3xl mx-auto px-6 py-10">
       <div className="mb-8 border-b pb-4">
         <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-          Notebook público — solo lectura
+          Notebook público — {notebook.public_role === 'editor' ? 'Editor' : 'Solo lectura'}
         </div>
         <h1 className="text-2xl font-bold">{notebook.name}</h1>
         {notebook.description && (

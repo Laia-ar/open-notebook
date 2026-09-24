@@ -57,6 +57,13 @@ export function NotebookSharingDialog({
     })
   }
 
+  const handlePublicRoleChange = (role: string) => {
+    updateNotebook.mutate({
+      id: notebook.id,
+      data: { public_role: role as 'viewer' | 'editor' },
+    })
+  }
+
   const addEmail = (email: string) => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed) return
@@ -171,21 +178,40 @@ export function NotebookSharingDialog({
                 </div>
               </div>
             </button>
-            <button
-              type="button"
-              onClick={() => handleVisibilityChange('public')}
-              className={`w-full flex items-start gap-3 rounded-md border p-3 text-left ${
+
+            <div
+              className={`w-full rounded-md border p-3 ${
                 notebook.is_public ? 'border-primary bg-accent' : ''
               }`}
             >
-              <Globe className="h-4 w-4 mt-0.5 shrink-0" />
-              <div>
-                <div className="text-sm font-medium">Público</div>
-                <div className="text-xs text-muted-foreground">
-                  Cualquiera con el link puede entrar, solo para ver
+              <button
+                type="button"
+                onClick={() => handleVisibilityChange('public')}
+                className="w-full flex items-start gap-3 text-left"
+              >
+                <Globe className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">Público</div>
+                  <div className="text-xs text-muted-foreground">
+                    Cualquiera con el link puede entrar sin loguearse.
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+
+              {notebook.is_public && (
+                <div className="mt-2 pl-7">
+                  <Select value={notebook.public_role} onValueChange={handlePublicRoleChange}>
+                    <SelectTrigger className="h-8 w-[110px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">Lector</SelectItem>
+                      <SelectItem value="editor">Editor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -18,6 +18,7 @@ from api.models import (
 )
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import Notebook, NotebookShare, Source
+from open_notebook.config import NOTEBOOK_SHARE_ALLOWED_DOMAIN
 from open_notebook.domain.user import User
 from open_notebook.exceptions import (
     InvalidInputError,
@@ -608,8 +609,18 @@ async def share_notebook(
     """Share this notebook with another user's email. Owner only."""
     try:
         await _get_owned_notebook(notebook_id, current_user)
+
+        email = share.email.strip().lower()
+        if NOTEBOOK_SHARE_ALLOWED_DOMAIN and not email.endswith(
+            f"@{NOTEBOOK_SHARE_ALLOWED_DOMAIN}"
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Solo se puede invitar a cuentas @{NOTEBOOK_SHARE_ALLOWED_DOMAIN}",
+            )
+
         record = NotebookShare(
-            notebook_id=notebook_id, email=share.email, role=share.role
+            notebook_id=notebook_id, email=email, role=share.role
         )
         await record.save()
         return NotebookShareResponse(
