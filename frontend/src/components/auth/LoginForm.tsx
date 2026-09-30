@@ -73,8 +73,14 @@ export function LoginForm() {
 
     // If we already know auth status, use it
     if (authRequired !== null) {
-      if (!authRequired && isAuthenticated) {
-        router.push('/notebooks')
+      if (isAuthenticated) {
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin')
+        if (redirectPath) {
+          sessionStorage.removeItem('redirectAfterLogin')
+          router.push(redirectPath)
+        } else {
+          router.push('/notebooks')
+        }
       } else {
         setIsCheckingAuth(false)
       }

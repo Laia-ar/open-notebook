@@ -187,6 +187,7 @@ async def get_notebooks(
                 description=nb.get("description", ""),
                 archived=nb.get("archived", False),
                 is_public=nb.get("is_public", False),
+                public_role=nb.get("public_role", "viewer"),
                 created=str(nb.get("created", "")),
                 updated=str(nb.get("updated", "")),
                 source_count=nb.get("source_count", 0),
@@ -394,6 +395,8 @@ async def update_notebook(
             notebook.archived = notebook_update.archived
         if notebook_update.is_public is not None:
             notebook.is_public = notebook_update.is_public
+        if notebook_update.public_role is not None:
+            notebook.public_role = notebook_update.public_role
 
         await notebook.save()
 
@@ -414,6 +417,7 @@ async def update_notebook(
                 description=nb.get("description", ""),
                 archived=nb.get("archived", False),
                 is_public=nb.get("is_public", False),
+                public_role=nb.get("public_role", "viewer"),
                 created=str(nb.get("created", "")),
                 updated=str(nb.get("updated", "")),
                 source_count=nb.get("source_count", 0),
@@ -427,6 +431,7 @@ async def update_notebook(
             description=notebook.description,
             archived=notebook.archived or False,
             is_public=notebook.is_public or False,
+            public_role=notebook.public_role or "viewer",
             created=str(notebook.created),
             updated=str(notebook.updated),
             source_count=0,

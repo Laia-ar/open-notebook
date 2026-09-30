@@ -19,6 +19,7 @@ class Notebook(ObjectModel):
     description: str
     owner_id: Optional[str] = None
     is_public: Optional[bool] = False
+    public_role: Optional[str] = "viewer"
     archived: Optional[bool] = False
     last_viewed_at: Optional[datetime] = None
     

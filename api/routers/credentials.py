@@ -64,7 +64,6 @@ from open_notebook.exceptions import (
 
 router = APIRouter(prefix="/credentials", tags=["credentials"])
 
-
 def _handle_value_error(e: ValueError, status_code: int = 400) -> HTTPException:
     """Convert a ValueError from the service layer to an HTTPException."""
     # Truncate so upstream validation messages can't leak unbounded internals.
@@ -106,7 +105,6 @@ async def get_env_status():
         logger.error(f"Error checking env status: {e}")
         raise HTTPException(status_code=500, detail="Failed to check environment status")
 
-
 # =============================================================================
 # CRUD endpoints
 # =============================================================================
@@ -138,7 +136,6 @@ async def list_credentials(
         logger.error(f"Error listing credentials: {e}")
         raise HTTPException(status_code=500, detail="Failed to list credentials")
 
-
 @router.get("/by-provider/{provider}", response_model=List[CredentialResponse])
 async def list_credentials_by_provider(provider: str):
     """List all credentials for a specific provider."""
@@ -156,7 +153,6 @@ async def list_credentials_by_provider(provider: str):
     except Exception as e:
         logger.error(f"Error listing credentials for {provider}: {e}")
         raise HTTPException(status_code=500, detail="Failed to list credentials for provider")
-
 
 @router.post("", response_model=CredentialResponse, status_code=201)
 async def create_credential(request: CreateCredentialRequest):
@@ -206,7 +202,6 @@ async def create_credential(request: CreateCredentialRequest):
         logger.error(f"Error creating credential: {e}")
         raise HTTPException(status_code=500, detail="Failed to create credential")
 
-
 @router.get("/{credential_id}", response_model=CredentialResponse)
 async def get_credential(credential_id: str):
     """Get a specific credential by ID. Never returns api_key."""
@@ -221,7 +216,6 @@ async def get_credential(credential_id: str):
     except Exception as e:
         logger.error(f"Error fetching credential {credential_id}: {e}")
         raise HTTPException(status_code=404, detail="Credential not found")
-
 
 @router.put("/{credential_id}", response_model=CredentialResponse)
 async def update_credential(credential_id: str, request: UpdateCredentialRequest):
@@ -300,7 +294,6 @@ async def update_credential(credential_id: str, request: UpdateCredentialRequest
     except Exception as e:
         logger.error(f"Error updating credential {credential_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update credential")
-
 
 @router.delete("/{credential_id}", response_model=CredentialDeleteResponse)
 async def delete_credential(

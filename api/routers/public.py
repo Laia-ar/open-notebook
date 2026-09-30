@@ -1,12 +1,18 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from loguru import logger
 from pydantic import BaseModel
 
+from api.models import NoteCreate, NoteResponse as ApiNoteResponse, NoteUpdate, SourceResponse
+from api.routers.notes import create_note as _create_note
+from api.routers.notes import delete_note as _delete_note
+from api.routers.notes import update_note as _update_note
+from api.routers.sources import create_source as _create_source
+from api.routers.sources import parse_source_form_data
 from open_notebook.database.repository import ensure_record_id, repo_query
-from open_notebook.domain.notebook import Notebook, Source
-from open_notebook.exceptions import NotFoundError, OpenNotebookError
+from open_notebook.domain.notebook import Note, Notebook, Source
+from open_notebook.exceptions import InvalidInputError, NotFoundError, OpenNotebookError
 
 router = APIRouter()
 
@@ -199,3 +205,83 @@ async def remove_public_notebook_source(notebook_id: str, source_id: str):
             f"Error removing source {source_id} from public notebook {notebook_id}: {str(e)}"
         )
         raise HTTPException(status_code=500, detail="Error removing source from notebook")
+    
+async def _note_belongs_to_notebook(note_id: str, notebook_id: str) -> bool:
+    rows = await repo_query(
+        "SELECT * FROM artifact WHERE in = $note_id AND out = $notebook_id LIMIT 1",
+        {
+            "note_id": ensure_record_id(note_id),
+            "notebook_id": ensure_record_id(notebook_id),
+        },
+    )
+    return bool(rows)
+
+
+@router.post("/public/notebooks/{public_notebook_id}/sources", response_model=SourceResponse)
+async def create_public_notebook_source(
+    public_notebook_id: str,
+    form_data: tuple = Depends(parse_source_form_data),
+):
+    """
+    Add a brand-new source (upload/link/text) to a public notebook. No
+    login required — reuses the same validated logic as the authenticated
+    endpoint in sources.py; only works when the notebook's general access
+    role is "editor".
+    """
+    await _get_public_editable_notebook(public_notebook_id)
+    source_data, _upload_file = form_data
+    if not source_data.notebooks:
+        source_data.notebooks = [public_notebook_id]
+    return await _create_source(form_data)
+
+
+@router.post("/public/notebooks/{notebook_id}/notes", response_model=ApiNoteResponse)
+async def create_public_notebook_note(notebook_id: str, note_data: NoteCreate):
+    """Create a note in a public notebook. No login required — editor role only."""
+    try:
+        await _get_public_editable_notebook(notebook_id)
+        note_data.notebook_id = notebook_id
+        return await _create_note(note_data)
+    except HTTPException:
+        raise
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating public note for notebook {notebook_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creating note")
+
+
+@router.put("/public/notebooks/{notebook_id}/notes/{note_id}", response_model=ApiNoteResponse)
+async def update_public_notebook_note(
+    notebook_id: str, note_id: str, note_update: NoteUpdate
+):
+    """Edit a note in a public notebook. No login required — editor role only."""
+    try:
+        await _get_public_editable_notebook(notebook_id)
+        if not await _note_belongs_to_notebook(note_id, notebook_id):
+            raise HTTPException(status_code=404, detail="Note not found in this notebook")
+        return await _update_note(note_id, note_update)
+    except HTTPException:
+        raise
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating public note {note_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error updating note")
+
+
+@router.delete("/public/notebooks/{notebook_id}/notes/{note_id}")
+async def delete_public_notebook_note(notebook_id: str, note_id: str):
+    """Delete a note from a public notebook. No login required — editor role only."""
+    try:
+        await _get_public_editable_notebook(notebook_id)
+        if not await _note_belongs_to_notebook(note_id, notebook_id):
+            raise HTTPException(status_code=404, detail="Note not found in this notebook")
+        return await _delete_note(note_id)
+    except HTTPException:
+        raise
+    except OpenNotebookError:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting public note {note_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error deleting note")
