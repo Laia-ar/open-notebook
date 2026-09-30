@@ -360,6 +360,7 @@ async def get_notebook(
             description=nb.get("description", ""),
             archived=nb.get("archived", False),
             is_public=nb.get("is_public", False),
+            public_role=nb.get("public_role", "viewer"),
             created=str(nb.get("created", "")),
             updated=str(nb.get("updated", "")),
             source_count=nb.get("source_count", 0),
