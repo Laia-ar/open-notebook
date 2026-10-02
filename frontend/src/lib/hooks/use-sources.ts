@@ -15,6 +15,13 @@ import {
 
 const NOTEBOOK_SOURCES_PAGE_SIZE = 30
 
+export function useSourceTypes() {
+  return useQuery({
+    queryKey: QUERY_KEYS.sourceTypes,
+    queryFn: () => sourcesApi.listTypes(),
+  })
+}
+
 export function useSources(notebookId?: string) {
   return useQuery({
     queryKey: QUERY_KEYS.sources(notebookId),

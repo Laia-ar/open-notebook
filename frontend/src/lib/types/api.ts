@@ -128,6 +128,7 @@ export interface CreateSourceRequest {
   file_path?: string
   content?: string
   title?: string
+  source_type_id?: string
   transformations?: string[]
   embed?: boolean
   delete_source?: boolean
@@ -146,6 +147,12 @@ export interface UpdateSourceRequest {
   type?: 'link' | 'upload' | 'text'
   url?: string
   content?: string
+}
+
+export interface SourceTypeResponse {
+  id: string
+  name: string
+  is_active: boolean
 }
 
 export interface APIError {

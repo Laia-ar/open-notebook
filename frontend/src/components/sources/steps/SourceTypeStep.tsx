@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Controller } from "react-hook-form"
+import { useSourceTypes } from "@/lib/hooks/use-sources"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface CreateSourceFormData {
   type: 'link' | 'upload' | 'text'
@@ -18,6 +20,7 @@ interface CreateSourceFormData {
   url?: string
   content?: string
   file?: FileList | File
+  source_type_id?: string
   notebooks?: string[]
   transformations?: string[]
   embed: boolean
@@ -99,6 +102,7 @@ const MAX_BATCH_SIZE = 50
 
 export function SourceTypeStep({ control, register, setValue, errors, urlValidationErrors, onClearUrlErrors }: SourceTypeStepProps) {
   const { t } = useTranslation()
+  const { data: sourceTypes = [], isLoading: sourceTypesLoading } = useSourceTypes()
   // Watch the selected type and inputs to detect batch mode
   const selectedType = useWatch({ control, name: 'type' })
   const urlInput = useWatch({ control, name: 'url' })
@@ -153,8 +157,44 @@ export function SourceTypeStep({ control, register, setValue, errors, urlValidat
 
   // Check for batch size limit
   const isOverLimit = itemCount > MAX_BATCH_SIZE
+
   return (
     <div className="space-y-6">
+
+      <Controller
+        control={control}
+        name="source_type_id"
+        render={({ field }) => (
+          <div className="space-y-2">
+            <Label>Category</Label>
+
+            <Select
+              value={field.value || ''}
+              onValueChange={field.onChange}
+              disabled={sourceTypesLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {sourceTypesLoading ? (
+                  <div className="px-2 py-2 text-sm text-muted-foreground">
+                    Loading categories...
+                  </div>
+                ) : (
+                  sourceTypes.map((sourceType) => (
+                    <SelectItem key={sourceType.id} value={sourceType.id}>
+                      {sourceType.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      />
+
       <FormSection
         title={t('sources.title')}
         description={t('sources.processDescription')}

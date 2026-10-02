@@ -418,7 +418,7 @@ class Source(ObjectModel):
     topics: Optional[List[str]] = Field(default_factory=list)
     full_text: Optional[str] = None
     last_viewed_at: Optional[datetime] = None
-    source_type_id: Optional[Union[str, RecordID]] = None
+    source_type_id: Optional[RecordID] = None
     
     @field_validator("source_type_id", mode="before")
     @classmethod
@@ -651,10 +651,13 @@ class Source(ObjectModel):
             raise DatabaseOperationError(e)
 
     def _prepare_save_data(self) -> dict:
-        """Override to ensure command field is always RecordID format for database"""
         data = super()._prepare_save_data()
 
-        # Ensure command field is RecordID format if not None
+        # Convertir la categoría a RecordID
+        if data.get("source_type_id") is not None:
+            data["source_type_id"] = ensure_record_id(data["source_type_id"])
+
+        # Mantener la conversión original del comando
         if data.get("command") is not None:
             data["command"] = ensure_record_id(data["command"])
 

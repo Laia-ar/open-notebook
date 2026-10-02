@@ -421,6 +421,7 @@ class SourceResponse(BaseModel):
 class SourceListResponse(BaseModel):
     id: str
     title: Optional[str]
+    source_type_id: Optional[str] = None
     topics: Optional[List[str]]
     asset: Optional[AssetModel]
     embedded: bool  # Boolean flag indicating if source has embeddings

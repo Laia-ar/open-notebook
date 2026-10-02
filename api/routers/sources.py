@@ -372,6 +372,7 @@ async def get_sources(
                 SourceListResponse(
                     id=row["id"],
                     title=row.get("title"),
+                    source_type_id=row.get("source_type_id"),
                     topics=row.get("topics") or [],
                     asset=AssetModel(
                         file_path=row["asset"].get("file_path")
