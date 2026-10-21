@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from open_notebook.domain.notebook import Source
+from open_notebook.database.repository import ensure_record_id
+from open_notebook.domain.notebook import Notebook, Source
 
 
 @pytest.fixture
@@ -91,7 +92,12 @@ class TestRecentlyViewedApi:
         data = response.json()
         assert [item["id"] for item in data] == ["source:1", "notebook:1"]
         assert len(data) == 2
-        assert mock_repo_query.await_args_list[0].args[1] == {"limit": 2}
+        # Notebooks are scoped to the logged-in owner (see conftest's
+        # get_current_user override); sources are not owner-scoped.
+        assert mock_repo_query.await_args_list[0].args[1] == {
+            "limit": 2,
+            "owner_id": ensure_record_id("app_user:test"),
+        }
         assert mock_repo_query.await_args_list[1].args[1] == {"limit": 2}
 
     @patch("api.routers.notebooks.repo_query", new_callable=AsyncMock)
@@ -103,8 +109,19 @@ class TestRecentlyViewedApi:
         assert response.status_code == 200
         assert response.json() == []
 
+    @patch("api.routers.notebooks.Notebook.get", new_callable=AsyncMock)
     @patch("api.routers.notebooks.repo_query", new_callable=AsyncMock)
-    def test_get_notebook_stamps_last_viewed_at(self, mock_repo_query, client):
+    def test_get_notebook_stamps_last_viewed_at(
+        self, mock_repo_query, mock_get_notebook, client
+    ):
+        # get_notebook resolves ownership through Notebook.get before querying;
+        # the conftest user is app_user:test, so the notebook must belong to it.
+        mock_get_notebook.return_value = Notebook(
+            id="notebook:1",
+            name="Notebook",
+            description="",
+            owner_id="app_user:test",
+        )
         mock_repo_query.side_effect = [
             [
                 {
