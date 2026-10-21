@@ -47,6 +47,10 @@ services:
       # Strongly recommended: this instance is reachable on a public IP.
       - OPEN_NOTEBOOK_PASSWORD=${OPEN_NOTEBOOK_PASSWORD:-}
 
+      # Mark the session cookie Secure (HTTPS only). Enable once serving
+      # over HTTPS; the Google session cookie is set without it otherwise.
+      - OPEN_NOTEBOOK_COOKIE_SECURE=${OPEN_NOTEBOOK_COOKIE_SECURE:-false}
+
       # REQUIRED: public URL of THIS instance's API. The frontend's
       # auto-detection (frontend/src/app/config/route.ts) hardcodes port
       # 5055, which on this shared host is the upstream instance — without
