@@ -2,7 +2,6 @@ import asyncio
 import os
 from pathlib import Path
 from typing import Any, List, Optional
-from open_notebook.domain.source_type import SourceType
 
 from content_core import check_file_support
 from fastapi import (
@@ -36,6 +35,7 @@ from commands.source_commands import SourceProcessingInput
 from open_notebook.config import UPLOADS_FOLDER
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import Asset, Notebook, Source
+from open_notebook.domain.source_type import SourceType
 from open_notebook.domain.transformation import Transformation
 from open_notebook.exceptions import (
     InvalidInputError,

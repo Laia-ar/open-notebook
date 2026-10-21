@@ -1,18 +1,19 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from pydantic import BaseModel
 
-from api.models import NoteCreate, NoteResponse as ApiNoteResponse, NoteUpdate, SourceResponse
+from api.models import NoteCreate, NoteUpdate, SourceResponse
+from api.models import NoteResponse as ApiNoteResponse
 from api.routers.notes import create_note as _create_note
 from api.routers.notes import delete_note as _delete_note
 from api.routers.notes import update_note as _update_note
 from api.routers.sources import create_source as _create_source
 from api.routers.sources import parse_source_form_data
 from open_notebook.database.repository import ensure_record_id, repo_query
-from open_notebook.domain.notebook import Note, Notebook, Source
-from open_notebook.exceptions import InvalidInputError, NotFoundError, OpenNotebookError
+from open_notebook.domain.notebook import Notebook, Source
+from open_notebook.exceptions import NotFoundError, OpenNotebookError
 
 router = APIRouter()
 

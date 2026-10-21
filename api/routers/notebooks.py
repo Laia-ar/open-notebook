@@ -16,9 +16,9 @@ from api.models import (
     RecentlyViewedResponse,
     UserSearchResult,
 )
+from open_notebook.config import NOTEBOOK_SHARE_ALLOWED_DOMAIN
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import Notebook, NotebookShare, Source
-from open_notebook.config import NOTEBOOK_SHARE_ALLOWED_DOMAIN
 from open_notebook.domain.user import User
 from open_notebook.exceptions import (
     InvalidInputError,
