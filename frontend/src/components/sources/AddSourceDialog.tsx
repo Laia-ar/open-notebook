@@ -30,6 +30,7 @@ const MAX_BATCH_SIZE = 50
 const createSourceSchema = z.object({
   type: z.enum(['link', 'upload', 'text']),
   title: z.string().optional(),
+  source_type_id: z.string().optional(),
   url: z.string().optional(),
   content: z.string().optional(),
   file: z.any().optional(),
@@ -301,6 +302,7 @@ export function AddSourceDialog({
     const createRequest: CreateSourceRequest = {
       type: data.type,
       notebooks: selectedNotebooks,
+      source_type_id: data.source_type_id,
       url: data.type === 'link' ? data.url : undefined,
       content: data.type === 'text' ? data.content : undefined,
       title: data.title,
@@ -353,6 +355,7 @@ export function AddSourceDialog({
         const createRequest: CreateSourceRequest = {
           type: item.type === 'url' ? 'link' : 'upload',
           notebooks: selectedNotebooks,
+          source_type_id: data.source_type_id,
           url: item.type === 'url' ? item.value as string : undefined,
           transformations: selectedTransformations,
           embed: data.embed,

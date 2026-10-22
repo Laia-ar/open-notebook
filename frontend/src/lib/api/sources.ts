@@ -7,12 +7,18 @@ import {
   SourceResponse,
   SourceStatusResponse,
   CreateSourceRequest, 
-  UpdateSourceRequest 
+  UpdateSourceRequest,
+  SourceTypeResponse, 
 } from '@/lib/types/api'
 
 export type SourceSortField = 'type' | 'title' | 'created' | 'updated' | 'insights_count' | 'embedded'
 
 export const sourcesApi = {
+  listTypes: async () => {
+    const response = await apiClient.get<SourceTypeResponse[]>('/source-types')
+    return response.data
+  },
+
   list: async (params?: {
     notebook_id?: string
     limit?: number
@@ -44,6 +50,9 @@ export const sourcesApi = {
     }
     if (data.title) {
       formData.append('title', data.title)
+    }
+    if (data.source_type_id) {
+      formData.append('source_type_id', data.source_type_id)
     }
     if (data.url) {
       formData.append('url', data.url)
