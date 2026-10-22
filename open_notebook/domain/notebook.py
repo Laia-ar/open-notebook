@@ -419,7 +419,7 @@ class Source(ObjectModel):
     topics: Optional[List[str]] = Field(default_factory=list)
     full_text: Optional[str] = None
     last_viewed_at: Optional[datetime] = None
-    source_type_id: Optional[RecordID] = None
+    source_type_id: Optional[Union[str, RecordID]] = None
     
     @field_validator("source_type_id", mode="before")
     @classmethod
